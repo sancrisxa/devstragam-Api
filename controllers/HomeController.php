@@ -4,15 +4,11 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $anuncios = new Anuncios();
-        $usuarios = new Usuarios();
-
-
-        $dados =  array(
-            'quantidade' => $anuncios->getQuantidade(),
-            'nome' => $usuarios->getNome(),
-            'idade' => $usuarios->getIdade()
+        $array = array(
+            'nome' => 'Antonio',
+            'idade' => '10'
         );
-        $this->loadTemplate('home', $dados);
+
+        $this->returnJson($array);
     }
 }

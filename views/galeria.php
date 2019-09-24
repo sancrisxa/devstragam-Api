@@ -1,1 +1,0 @@
-Galeria de fotos. <?= 'Fotos:' . $fotos;?>
