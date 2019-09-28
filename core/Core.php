@@ -1,78 +1,116 @@
-<?php 
+<?php
+namespace Core;
 
-class Core
-{
-    public function run()
-    {
-        $url = '/';
+class Core {
 
-        if (isset($_GET['url'])) {
-            $url .= $_GET['url'];
-        }
+	public function run() {
 
-        $url = $this->checkRoutes($url);
+		$url = '/';
+		if(isset($_GET['url'])) {
+			$url .= $_GET['url'];
+		}
 
-        $params = array();
+		$url = $this->checkRoutes($url);
 
-        if (!empty($url) && $url != '/') {
-            $url = explode('/', $url);
-            array_shift($url);
-            
-            $currentController = $url[0] . 'Controller';
-            array_shift($url);
+		$params = array();
 
-            if (isset($url[0]) && !empty($url[0])) {
-                $currentAction = $url[0];
-                array_shift($url);
-            } else {
-                $currentAction = 'index';
-            }
+		if(!empty($url) && $url != '/') {
+			$url = explode('/', $url);
+			array_shift($url);
 
-            if (count($url) > 0) {
-                $params = $url;
-            }
-        } else {
-            $currentController = 'HomeController';
-            $currentAction = 'index';
-        }
+			$currentController = $url[0].'Controller';
+			array_shift($url);
 
-        $controller = new $currentController();
-        call_user_func_array(array($controller, $currentAction), $params);
+			if(isset($url[0]) && !empty($url[0])) {
+				$currentAction = $url[0];
+				array_shift($url);
+			} else {
+				$currentAction = 'index';
+			}
 
-    }
+			if(count($url) > 0) {
+				$params = $url;
+			}
 
-    public function checkRoutes($url)
-    {
-        global $routes;
+		} else {
+			$currentController = 'HomeController';
+			$currentAction = 'index';
+		}
 
-        foreach ($routes as $pt => $newurl) {
-            $pattern = preg_replace('(\{[a-z0-9]{1,}\})', '([a-z0-9-]{1,})', $pt);
+		$currentController = ucfirst($currentController);
 
-            if (preg_match('#^(' . $pattern . ')*$#i', $url, $matches) === 1) {
-                array_shift($matches);
-                array_shift($matches);
+		$prefix = '\Controllers\\';
 
-                $itens = array();
-                if (preg_match('(\{[a-z0-9]{1,}\})', $pt, $m)) {
-                    $itens = preg_match('(\{|\})', '', $m[0]);
-                }
+		if(!file_exists('Controllers/'.$currentController.'.php') ||
+			!method_exists($prefix.$currentController, $currentAction)) {
+			$currentController = 'NotfoundController';
+			$currentAction = 'index';
+		}
 
-                $arg = array();
-                foreach ($matches as $key => $match) {
-                    $arg[$itens[$key]] = $match;
-                }
+		$newController = $prefix.$currentController;
+		$c = new $newController();
 
-                foreach ($arg as $argkey => $argvalue) {
-                    $newurl = str_replace(':', $argkey, $argvalue, $newurl);
-                }
+		call_user_func_array(array($c, $currentAction), $params);
+		
+	}
 
-                $url = $newurl;
+	public function checkRoutes($url) {
+		global $routes;
 
-                break;
-            }
-        }
-        
-        return $url;
+		foreach($routes as $pt => $newurl) {
 
-    }
+			// Identifica os argumentos e substitui por regex
+			$pattern = preg_replace('(\{[a-z0-9]{1,}\})', '([a-z0-9-]{1,})', $pt);
+
+			// Faz o match da URL
+			if(preg_match('#^('.$pattern.')*$#i', $url, $matches) === 1) {
+				array_shift($matches);
+				array_shift($matches);
+
+				// Pega todos os argumentos para associar
+				$itens = array();
+				if(preg_match_all('(\{[a-z0-9]{1,}\})', $pt, $m)) {
+					$itens = preg_replace('(\{|\})', '', $m[0]);
+				}
+
+				// Faz a associação
+				$arg = array();
+				foreach($matches as $key => $match) {
+					$arg[$itens[$key]] = $match;
+				}
+
+				// Monta a nova url
+				foreach($arg as $argkey => $argvalue) {
+					$newurl = str_replace(':'.$argkey, $argvalue, $newurl);
+				}
+
+				$url = $newurl;
+				
+				break;
+
+			}
+
+		}
+
+		return $url;
+
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
 }
