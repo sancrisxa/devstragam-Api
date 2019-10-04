@@ -3,6 +3,7 @@ namespace Models;
 
 use \Core\Model;
 use \Models\Jwt;
+use \Models\Photos;
 
 class Users extends Model {
 
@@ -55,6 +56,19 @@ class Users extends Model {
 		return $jwt->create(array('id_user' => $this->id_user));
 	}
 
+	public function validateJwt($token)
+	{
+		$jwt = new Jwt();
+		$info = $jwt->validate($token);
+
+		if (isset($info->id_user)) {
+			$this->id_user = $info->id_user;
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	private function emailExists($email) {
 		$sql = "SELECT id FROM users WHERE email = :email";
 		$sql = $this->db->prepare($sql);
@@ -67,6 +81,112 @@ class Users extends Model {
 			return false;
 		}
 	}
+
+	public function getId()
+	{
+		return $this->id_user;
+	}
+
+	public function getInfo($id)
+	{
+		$array = array();
+
+		$sql = "SELECT id, name, email, avatar FROM users WHERE id = :id";
+		$sql = $this->db->prepare($sql);
+		$sql->bindValue(':id', $id);
+		$sql->execute();
+
+		if ($sql->rowCount() > 0) {
+			$array = $sql->fetch(\PDO::FETCH_ASSOC);
+
+			$photos = new Photos();
+
+			if (!empty($array['avatar'])) {
+				$array['avatar'] = BASE_URL . 'media/avatar/' . $array['avatar'];
+			} else {
+				$array['avatar'] = BASE_URL . 'media/avatar/default.jpg';
+			}
+
+			$array['following'] = $this->getFollowingCount($id);
+			$array['followers'] = $this->getFollowersCount($id);
+			$array['photos_count'] = $photos->getPhotosCount($id);
+		}
+
+		return $array;
+	}
+
+	public function getFollowingCount($id_user) 
+	{
+		$sql = "SELECT COUNT(*) AS c FROM users_following WHERE id_user_active = :id";
+		$sql = $this->db->prepare($sql);
+		$sql->bindValue(':id', $id_user);
+		$sql->execute();
+		$info = $sql-fetch();
+
+		return $info['c'];
+	}
+
+	public function getFeed($offset = 0, $per_page = 10) {
+		$followingUsers = $this->getFollowing($this->getId());
+
+		$p = new Photos();
+		return $p->getFeedCollection($followingUsers, $offset, $per_page);
+	}
+
+	public function getFollowing($id_user) 
+	{
+		$array = array();
+		$sql = "SELECT id_user_passive FROM users_following WHERE id_user_active = :id";
+		$sql = $this->db->prepare($sql);
+		$sql->bindValue(':id', $id_user);
+		$sql->execute();
+
+		if ($sql->rowCount() > 0) {
+			$data = $sql->fetchAll();
+
+			foreach ($data as $item ) {
+				$array[] = intval($item['id_user_passive']);
+			}
+		}
+
+		return $array;
+	}
+
+	public function getFollowersCount($id_user) 
+	{
+		$sql = "SELECT COUNT(*) AS c FROM users_following WHERE id_user_passive = :id";
+		$sql = $this->db->prepare($sql);
+		$sql->bindValue(':id', $id_user);
+		$sql->execute();
+		$info = $sql-fetch();
+
+		return $info['c'];
+	}
+
+	public function delete($id)
+	{
+		if ($id == $this->getId()) {
+
+			$p = new Photos();
+			$p->deleteAll($id);
+
+			$sql = "DELETE FROM users_following WHERE id_user_active = :id OR id_user_passive = :id";
+			$sql = $this->db->prepare($sql);
+			$sql->bindValue(':id', $id);
+			$sql->execute();
+
+			$sql = "DELETE FROM users WHERE id = :id";
+			$sql = $this->db->prepare($sql);
+			$sql->bindValue(':id', $id);
+			$sql->execute();
+
+			return '';
+ 
+		} else {
+			return "Não é permitido excluir outro usuário";
+		}
+	}
+
 
 }
 

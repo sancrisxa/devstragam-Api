@@ -6,7 +6,10 @@ use \Models\Users;
 
 class UsersController extends Controller {
 
-	public function index() {}
+	public function index() 
+	{
+		echo 'Users index';
+	}
 
 	public function login() {
 		$array = array('error'=>'');
@@ -57,6 +60,96 @@ class UsersController extends Controller {
 		} else {
 			$array['error'] = 'Método de requisição incompatível';
 		}
+
+		$this->returnJson($array);
+	}
+
+	public function view($id)
+	{
+		$array = array('error' => '', 'logged' => false);
+
+		$method = $this->getMethod();
+		$data = $this->getRequestData();
+
+		$users = new Users();
+
+		if (!empty($data['jwt']) && $users->validateJwt($data['jwt'])) {
+			$array['logged'] = true;
+
+			$array['is_me'] = false;
+
+			switch ($method) {
+				case 'GET':
+
+					$array['data'] = $users->getInfo($id);
+
+					if (count($array['data']) === 0) {
+						$array['error'] = 'Usuário não existente';
+					}
+					break;
+
+				case 'PUT':
+					break;
+
+				case 'DELETE':
+					$array['error'] = $users->delete($id);
+					break;
+
+				default:
+					$array['error'] = 'Método' . $method . 'não disponível';
+					break;
+			}
+
+			if ($id == $users->getId()) {
+				$array['is_me'] = true;
+			}
+
+
+		} else {
+			$array['error'] = 'Acesso negado';
+		}
+
+		
+
+		$this->returnJson($array);
+	}
+
+	public function feed()
+	{
+		$array = array('error' => '', 'logged' => false);
+
+		$method = $this->getMethod();
+		$data = $this->getRequestData();
+
+		$users = new Users();
+
+		if (!empty($data['jwt']) && $users->validateJwt($data['jwt'])) {
+			$array['logged'] = true;
+
+			if ($method == 'GET') {
+				$offset = 0;
+
+				if (!empty($data['offset'])) {
+					$offset = intval($data['offset']);
+				}
+
+				$per_page = 10;
+				if (!empty($data['per_page'])) {
+					$per_page = intval($data['per_page']);
+				}
+
+				$array['data'] = $users->getFeed($offset, $per_page);
+
+
+			} else {
+				$array['error'] = 'Método' . $method . 'não disponível';
+			}
+
+		} else {
+			$array['error'] = 'Acesso negado';
+		}
+
+		
 
 		$this->returnJson($array);
 	}
