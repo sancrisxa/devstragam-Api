@@ -204,6 +204,46 @@ class UsersController extends Controller {
 		$this->returnJson($array);
 	}
 
+	public function follow($id_user)
+	{
+		$array = array('error' => '', 'logged' => false);
+
+		$method = $this->getMethod();
+		$data = $this->getRequestData();
+
+		$users = new Users();
+		$p = new Photos();
+
+		if (!empty($data['jwt']) && $users->validateJwt($data['jwt'])) {
+			
+			$array['logged'] = true;
+
+			switch ($method) {
+				case 'POST':
+				$users->follow($id_user);
+
+			case 'PUT':
+				break;
+
+			case 'DELETE':
+				$users->unfollow($id_user);
+				break;
+
+			default:
+				$array['error'] = 'Método' . $method . 'não disponível';
+				break;
+
+			}
+
+		} else {
+			$array['error'] = 'Acesso negado';
+		}
+
+		
+
+		$this->returnJson($array);
+	}
+
 }
 
 
