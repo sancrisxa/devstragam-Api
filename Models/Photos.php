@@ -214,4 +214,79 @@ class Photos extends Model
 		$sql->bindValue('id_user', $id_user);
 		$sql->execure();
 	}
+
+	public function addComment($id_photo, $id_user, $txt)
+	{
+		if (!empty($txt)) {
+
+			$sql = "INSERT INTO photos_comments (id_user, id_photo, date_comment, txt) VALUES (:id_user, :id_photo, NOW(), :txt)";
+			$sql = $this->db->prepare($sql);
+			$sql->bindValue(':id_user', $id_user);
+			$sql->bindValue(':id_photo', $id_photo);
+			$sql->bindValue(':txt', $txt);
+			$sql->execute();
+
+			return '';
+		} else {
+			return 'Comentário vazio';
+		}
+	}
+
+	public function deleteComment($id_comment, $id_user)
+	{
+		$sql = "SELECT * FROM photos_comments WHERE id_user = :id_user AND id = :id";
+		$sql = $this->db->prepare($sql);
+		$sql->bindValue(':id_user', $id_user);
+		$sql->bindValue(':id', $id_comment);
+		$sql->execute();
+
+		if ($sql->rowCount() > 0) {
+			$sql = "DELETE FROM photos_comments WHERE id = :id";
+			$sql = $this->db->prepare($sql);
+			$sql->bindValue(':id', $id_comment);
+			$sql->execute();
+
+			return '';
+
+		} else {
+			return 'Este comentário não é seu.';
+		}
+
+	}
+
+	public function like($id_photo, $id_user)
+	{
+		$sql = "SELECT * FROM photos_likes WHERE id_user = :id_user AND id_photo = :id_photo";
+		$sql = $this->db->prepare($sql);
+		$sql->bindValue(':id_user', $id_user);
+		$sql->bindValue(':id_photo', $id_photo);
+		$sql->execute();
+
+		if ($sql->rowCount() == 0) {
+
+			$sql = "INSERT INTO photos_likes (id_user, id_photo) VALUES (:id_user, :id_photo)";
+			$sql = $this->db->prepare($sql);
+			$sql->bindValue(':id_user', $id_user);
+			$sql->bindValue(':id_photo', $id_photo);
+			$sql->execute();
+
+			return '';
+
+		} else {
+			return 'Você já deu like nesta foto';
+		}
+
+		
+	}
+
+	public function unlike($id_photo, $id_user)
+	{
+		$sql = "DELETE FROM  photos_like WHERE id_user = :id_user AND id_photo = ";
+		$sql = $this->db->prepare($sql);
+		$sql->bindValue(':id_user', $id_user);
+		$sql->bindValue(':id_photo', $id_photo);
+		$sql->execute();
+		
+		return '';
+	}
 }
